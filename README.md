@@ -1,191 +1,178 @@
-# Dental Funnel — New-Patient Acquisition with Attribution That Survives to Attendance
+# Dental Funnel
 
-A production-ready dental landing page + lead API with first-touch attribution, Meta Pixel + Conversions API deduplication, and a coverage view that publishes its own blind spot.
+**A new-patient acquisition funnel where the click id survives all the way to
+the appointment — so the ad platform can optimise on people who turn up rather
+than people who fill in forms.**
 
-**Stack:** Next.js 15 (App Router) · Postgres (Neon) · Meta Pixel + CAPI · Vercel
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Postgres](https://img.shields.io/badge/Neon_Postgres-16-336791?logo=postgresql&logoColor=white)](https://neon.tech)
+[![Vercel](https://img.shields.io/badge/Vercel-deployed-000000?logo=vercel&logoColor=white)](https://vercel.com)
+[![Meta CAPI](https://img.shields.io/badge/Meta-Conversions_API-0866FF?logo=meta&logoColor=white)](https://developers.facebook.com/docs/marketing-api/conversions-api)
+[![License](https://img.shields.io/badge/license-MIT-1c6b58)](LICENSE)
 
-> 🔗 **Live:** [paste Vercel URL here]
-> 🎥 **Demo video:** [paste Loom URL here — used in Aspire application]
+**→ [dental-funnel-eight.vercel.app](https://dental-funnel-eight.vercel.app)**
 
----
-
-## 1. What this is
-
-Most dental funnels fire a `Lead` event on form submit and stop. That teaches Meta to find people who fill in forms — and it gets very good at it, while the practice cares about people who walk in.
-
-This funnel carries the click ID through every hop so ad spend can be joined to actual attendance:
-
-```
-ad click ──▶ landing page ──▶ form ──▶ leads row ──▶ appointment ──▶ attended
-                  │                 │                                        │
-         first-touch capture   stored, not derived              CAPI offline conversion
-                                                                             │
-                                                  Meta optimises on people who turn up
-```
-
-**Offer:** New patient exam + X-rays, **$59**. Chosen as a media-buying decision: highest-volume dental offer in North America, concrete price kills the objection before it forms, low commitment (an appointment, not a treatment decision). Whitening attracts one-visit patients; implants have a consideration cycle a landing page can't close.
-
-**Angle:** price is the stated objection, shame is the real one. The subhead — *"No lecture about how long it's been"* — and the final FAQ answer the embarrassment barrier almost no dental ad addresses.
+![The landing page](docs/img/hero.png)
 
 ---
 
-## 2. How it works
+## The problem
 
-1. Visitor lands with ad click IDs (`fbclid`, `gclid`, …) and UTM params in the URL.
-2. `lib/attribution.ts` captures **first touch** on page load and persists it (so a later organic return still credits the ad).
-3. `components/LeadForm.tsx` submits name + phone + email + preferred time plus the hidden attribution payload.
-4. `app/api/lead/route.ts` **saves the lead first**, then fires CAPI. If Meta is down, the practice still gets the patient — a funnel that loses a lead because a pixel failed has its priorities backwards.
-5. Pixel (browser) and CAPI (server) share one `event_id`, so Meta deduplicates instead of double-counting (which would halve your reported CPL and look fine while being wrong).
+A clinic buying paid social gets billed on form fills. So the platform learns to
+find people who fill in forms — and gets very good at finding people who fill in
+forms and never turn up.
 
-### Three decisions worth defending on a call
+Fixing that needs the click id to survive four hops: ad → page → lead → booking.
+Most funnels lose it at the first one.
 
-| Decision | Why |
-|---|---|
-| **First touch wins, not last** | A clicker who returns via brand search belongs to the ad. Last-touch defunds the campaign that produced them. Exception: a paid visit after an *untracked* one takes credit — there was no campaign to credit before. |
-| **Pixel + CAPI share `event_id`** | Without a shared key everything counts twice. A CPL that looks half-price is worse than no tracking because nobody questions it. |
-| **Save before tracking** | The lead row is the product; the tracking event is metadata. Order matters. |
-
----
-
-## 3. Database (ERD)
-
-One table, one view. Attribution is **stored on the lead**, never reconstructed later.
+## Architecture
 
 ```mermaid
-erDiagram
-    LEADS ||--o{ V_LEAD_COVERAGE : "aggregated weekly into"
-    LEADS {
-        bigserial lead_id PK
-        text event_id UK "shared pixel+CAPI dedup key"
-        text first_name
-        text phone
-        text email
-        text preferred_time
-        text fbclid "click IDs: fb, google, microsoft, tiktok"
-        text gclid
-        text wbraid
-        text gbraid
-        text msclkid
-        text utm_source
-        text utm_medium
-        text utm_campaign
-        text utm_content
-        text utm_term
-        text landing_page
-        text referrer
-        timestamptz first_seen_at
-        text user_agent
-        boolean capi_sent
-        text capi_detail
-        timestamptz created_at
-    }
-    V_LEAD_COVERAGE {
-        date week
-        int leads
-        int with_click_id
-        int with_campaign
-        numeric coverage_pct
-    }
+flowchart TB
+    AD["Paid social click<br/>fbclid · gclid"]:::ext
+    LP["Landing page<br/>Next.js on Vercel"]
+    LEAD["/api/lead"]:::fn
+    LEADS[("leads")]:::store
+    META["Meta Conversions API"]:::ext
+    N8N["n8n · follow-up"]:::ext
+    BK["Booking step"]
+    SLOTS["/api/slots"]:::fn
+    BOOK["/api/book"]:::fn
+    APPTS[("appointments")]:::store
+    VIEWS["v_lead_coverage<br/>v_booking_funnel"]:::store
+
+    AD --> LP
+    LP -- "first touch captured<br/>before the form posts" --> LEAD
+    LEAD -- "saved first" --> LEADS
+    LEAD -. "shared event_id<br/>dedupes the pixel" .-> META
+    LEAD -. "fire and forget" .-> N8N
+    LEAD -- "redirect ?ref=event_id" --> BK
+    BK --> SLOTS
+    BK --> BOOK
+    SLOTS -- "rules minus taken" --> APPTS
+    BOOK -- "unique index settles a tie" --> APPTS
+    LEADS --> VIEWS
+    APPTS --> VIEWS
+
+    classDef ext fill:#f2efe9,stroke:#cfc8ba,color:#46574f
+    classDef fn fill:#eef4f2,stroke:#2b7a6a,color:#0d3b34
+    classDef store fill:#f4f1ec,stroke:#a08a5e,color:#3d3428
+    classDef default fill:#ffffff,stroke:#0d3b34,color:#14201d
 ```
 
-**`v_lead_coverage`** reports, per week, what share of leads carry a click ID. Expect 80–90% — redirects strip query strings, in-app browsers drop them, some people see the ad and phone instead of clicking. **That gap is published next to every number.** A report that doesn't say how much it couldn't see is hiding how much it's guessing.
+## Design decisions
 
-Indexes: `leads_created_idx` (recency), `leads_campaign_idx` partial (campaign reporting).
+**The lead is saved before tracking is attempted.** If Meta is down the practice
+still gets the patient. A funnel that loses a lead because a pixel failed has its
+priorities backwards.
 
-Schema: [`db/schema.sql`](db/schema.sql)
+**First touch wins, not last.** Someone who clicks an ad, leaves, and returns by
+searching the practice name belongs to the ad. Last-touch hands that conversion
+to organic and quietly defunds the campaign that produced it. The one exception:
+a paid visit arriving after an *untracked* one takes credit, because there was no
+campaign to credit before.
 
----
+**Pixel and CAPI share an `event_id`.** Both report the same conversion. Without
+a shared key you count everything twice and the CPL you report is half the real
+one — worse than no tracking, because it looks fine.
 
-## 4. Project map
+**Contact data is hashed server-side**, in `lib/capi.ts`, not in the browser. A
+browser-side hash can be read by any extension on the page, and the practice
+needs the phone number unhashed anyway so somebody can ring the patient.
 
-```
-app/page.tsx            landing page — 8 sections (hero, offer, how it works, reviews, FAQ…)
-app/thank-you/          confirmation + booking-calendar embed
-app/api/lead/route.ts   validate → save → CAPI (soft-fail) → respond
-components/LeadForm.tsx four fields + hidden attribution payload
-components/Reviews.tsx  structure with visible "sample" banner (see §6)
-lib/attribution.ts      first-touch capture + persistence
-lib/capi.ts             Conversions API, SHA-256-hashed contact data
-db/schema.sql           leads table + v_lead_coverage
-copy.md                 every section's copy, verbatim
-follow-up.md            W1–W4 message sequences + library
-tracking.md             events, dedup keys, offline-conversion loop
-```
+**The booking step is ours, not an embed.** A third-party iframe looks like a
+different website bolted on — and the whole argument here is that a lead who
+picks their own time attends more often than one waiting for a callback, so the
+booking step deserves the same care as the form before it.
 
----
+![The booking step](docs/img/booking.png)
 
-## 5. Run it locally
+**The database settles a tie.** A partial unique index on `starts_at where
+status = 'booked'` means two people choosing the same slot in the same second
+cannot both win. Application logic that checks-then-inserts races with itself.
 
-Prerequisites: Node 20+, a Postgres connection string (Neon free tier works).
+**The server re-derives whether a slot is offerable.** `isBookableSlot` runs
+again on POST, so a crafted request cannot book 3am on a Sunday.
+
+**Times are built in the practice timezone and returned as UTC instants**, with
+the offset resolved twice to survive a DST boundary. Constructing `Date`s in the
+server's local zone is the bug that books people at the wrong hour and never
+raises anything — it just produces a no-show.
+
+## Coverage
+
+`v_lead_coverage` reports what percentage of leads carry a click id. Expect
+80–90%. Some always arrive untraceable — redirects strip query strings, some
+in-app browsers drop them, and some people see the ad and phone the practice
+instead of clicking.
+
+**That gap is published next to every number.** A report that doesn't say how
+much it couldn't see has decided not to tell you how much it's guessing.
+
+## Run it
 
 ```bash
 npm install
-cp .env.example .env.local   # set DATABASE_URL (only required var)
+cp .env.example .env          # DATABASE_URL is the only required value
 psql "$DATABASE_URL" -f db/schema.sql
-npm run dev                  # http://localhost:3000
+npm run dev
 ```
 
-Submit the form, then check:
-
-```sql
-SELECT lead_id, first_name, utm_campaign, fbclid, capi_sent FROM leads ORDER BY 1 DESC LIMIT 5;
-SELECT * FROM v_lead_coverage LIMIT 4;
-```
-
-### Environment variables
-
-| Var | Required | Purpose |
-|---|---|---|
-| `DATABASE_URL` | ✅ | Postgres (Neon). Lead storage. |
-| `NEXT_PUBLIC_META_PIXEL_ID` | – | Browser pixel. Page works without it. |
-| `META_CAPI_TOKEN` | – | Server events. Without it CAPI is a quiet no-op, lead still saves. |
-| `NEXT_PUBLIC_PRACTICE_NAME` | – | Hero branding override. |
-
----
-
-## 6. On the reviews (read this before going live)
-
-`components/Reviews.tsx` ships as **structure with a visible "sample" banner**, not invented testimonials. Fabricated reviews are a fabricated endorsement — and the fastest way for a local business to lose the trust the page exists to build. Stock-photo faces do the same. On a live build both come from the practice.
-
-When swapping in real reviews, pick ones that answer objections, not ones that say "great service": one about cost, one about anxiety, one about a long gap. The component labels which is which.
-
----
-
-## 7. Deploy to Vercel
-
-This repo deploys as-is from the root. No build settings to change.
-
-1. Vercel → Add New → Project → Import this repo (framework preset: Next.js).
-2. Environment Variables → add `DATABASE_URL` (Production). Add pixel/CAPI vars only if you have them.
-3. Deploy → **Redeploy after adding variables** (Vercel doesn't apply them retroactively).
-4. Paste the production URL at the top of this README and into the Aspire form.
+Deploy:
 
 ```bash
-# CLI alternative
 npx vercel
-npx vercel env add DATABASE_URL
+npx vercel env add DATABASE_URL production
 npx vercel --prod
 ```
 
----
+Everything except `DATABASE_URL` is optional. With no pixel configured the page
+still works and CAPI degrades to a quiet no-op rather than throwing.
 
-## 8. Verification
+## Layout
+
+| Path | |
+|---|---|
+| `app/page.tsx` | Landing page — hero, offer, steps, FAQ |
+| `app/thank-you/` | Step two: our own calendar |
+| `app/api/lead/` | Saves the lead, *then* fires CAPI |
+| `app/api/slots/` | Availability, generated from the practice's rules |
+| `app/api/book/` | Books a slot; the database settles a tie |
+| `lib/attribution.ts` | First-touch capture |
+| `lib/capi.ts` | Conversions API, hashed contact data |
+| `lib/booking.ts` | Slot generation and the bookable-slot guard |
+| `db/schema.sql` | `leads`, `appointments`, two reporting views |
+| `copy.md` · `tracking.md` · `follow-up.md` | Copy, event plan, follow-up sequences |
+
+## On the reviews section
+
+`components/Reviews.tsx` ships as **structure**, not invented testimonials, and
+the live page shows the terms of the offer instead.
+
+Fabricated reviews on a public page are a fabricated endorsement, and they are
+also the fastest way for a local business to lose the trust the page exists to
+build. Stock-photo faces do the same. On a live build both come from the
+practice's own Google listing.
+
+## Verified
+
+Against the deployed URL, not a build log:
 
 ```
-tsc --noEmit    exit 0
-next build      6/6 pages (landing static, /api/lead dynamic)
-module tests    6/6 — first-touch persistence, paid override,
-                direct-traffic recording, event_id uniqueness, CAPI soft-fail
+tsc --noEmit          exit 0
+next build            6 routes, landing page static
+lead submitted        → row in leads, fbclid intact
+duplicate event_id    → no second row
+slot booked           → disappears from availability
+3am Sunday POST       → refused: not_bookable
+v_booking_funnel      → 7 leads, 2 booked, 28.6%
 ```
 
----
-
-## 9. Where this sits
-
-- Provisions its follow-up in [`../ghl-provisioner`](../ghl-provisioner) (W1–W4: speed-to-lead → confirmation → reminders → no-show recovery).
-- Its attendance data is what [`../pay-per-show`](../pay-per-show) reconciles into invoices.
-- Built for the **Aspire Media** application (FB Ad Specialist + Landing Page Builder): this URL is the funnel deliverable, and the 1,388 → 57 → 13 reconciliation in `aspire/case-study.md` is the proof-of-results deliverable.
+Reviewed at 1440 and 390 wide.
 
 ---
 
 Built by [Abdiwahid Ali](https://github.com/maqbuuul). Nairobi.
+Photography from [Unsplash](https://unsplash.com).
