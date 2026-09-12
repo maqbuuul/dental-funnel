@@ -1,10 +1,27 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { Inter, Source_Serif_4 } from 'next/font/google';
 import './globals.css';
 
 const PRACTICE = process.env.NEXT_PUBLIC_PRACTICE_NAME ?? 'Bright Smile Dental';
 const CITY = process.env.NEXT_PUBLIC_PRACTICE_CITY ?? 'Charlotte';
 const PIXEL = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+
+// A serif for the headlines and a real UI face for everything else. The
+// default system stack is most of why an unstyled page reads as unfinished --
+// and for healthcare a serif buys warmth that a geometric sans does not.
+const serif = Source_Serif_4({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
+const sans = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: `New patient exam and X-rays for $59 · ${PRACTICE}`,
@@ -17,12 +34,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f3d34',
+  themeColor: '#0d3b34',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body>
         {children}
         {PIXEL && (

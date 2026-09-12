@@ -65,21 +65,23 @@ export default function LeadForm({ id }: { id?: string }) {
 
   return (
     <form id={id} className="lead-form" onSubmit={onSubmit} noValidate>
-      <div className="field">
-        <label htmlFor="first_name">First name</label>
-        <input id="first_name" name="first_name" autoComplete="given-name" required />
-      </div>
-
-      <div className="field">
-        <label htmlFor="phone">Phone</label>
-        <input id="phone" name="phone" type="tel" inputMode="tel"
-               autoComplete="tel" required />
+      <div className="row-2">
+        <div className="field">
+          <label htmlFor="first_name">First name</label>
+          <input id="first_name" name="first_name" autoComplete="given-name"
+                 placeholder="Amina" required />
+        </div>
+        <div className="field">
+          <label htmlFor="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" inputMode="tel"
+                 autoComplete="tel" placeholder="(704) 555 0142" required />
+        </div>
       </div>
 
       <div className="field">
         <label htmlFor="email">Email</label>
         <input id="email" name="email" type="email" inputMode="email"
-               autoComplete="email" />
+               autoComplete="email" placeholder="you@example.com" />
       </div>
 
       <div className="field">
@@ -91,13 +93,13 @@ export default function LeadForm({ id }: { id?: string }) {
         </select>
       </div>
 
-      <button type="submit" disabled={state === 'sending'}>
+      <button className="btn" type="submit" disabled={state === 'sending'}>
         {state === 'sending' ? 'Booking…' : 'Book my $59 exam'}
       </button>
 
       {state === 'error' && (
         <p className="form-error" role="alert">
-          {error}. Give us a call instead — we&apos;ll sort it out in a minute.
+          {error}. Give us a call instead &mdash; we&apos;ll sort it out in a minute.
         </p>
       )}
 

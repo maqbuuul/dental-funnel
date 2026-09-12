@@ -15,6 +15,7 @@ export const metadata = { title: `You're on the list · ${PRACTICE}` };
 export default function ThankYou() {
   return (
     <main className="thanks">
+      <span className="eyebrow" style={{color:"var(--brand-2)",background:"rgba(16,84,74,.08)",borderColor:"rgba(16,84,74,.18)"}}>Step 2 of 2</span>
       <h1>Got it — now pick your time</h1>
       <p className="lede">
         We&apos;ll text you a confirmation in the next few minutes. Choose a slot
