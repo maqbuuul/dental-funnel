@@ -95,7 +95,7 @@ a  { color: var(--brand-2); }
   max-width: var(--wrap); margin: 0 auto; padding: var(--s-3) var(--s-5);
   display: flex; align-items: center; justify-content: space-between; gap: var(--s-4);
 }
-.brand { color: #fff; font-family: var(--font-serif), serif; font-weight: 700; font-size: var(--t-md); letter-spacing: -.01em; }
+.brand { color: #fff; font-family: var(--font-serif), serif; font-weight: 700; font-size: var(--t-base); letter-spacing: -.01em; white-space: nowrap; }
 .brand span { display: block; font-family: var(--font-sans), sans-serif; font-weight: 400; font-size: var(--t-xs); color: rgba(242,247,245,.68); letter-spacing: .04em; text-transform: uppercase; }
 .call {
   display: inline-flex; align-items: center; gap: var(--s-2);
@@ -107,14 +107,27 @@ a  { color: var(--brand-2); }
 
 /* ── hero ────────────────────────────────────────────────────────────────── */
 .hero {
-  position: relative; overflow: hidden;
-  background:
-    radial-gradient(1100px 520px at 88% -8%, rgba(28,124,108,.42), transparent 62%),
-    radial-gradient(760px 420px at 4% 110%, rgba(194,97,31,.18), transparent 64%),
-    linear-gradient(168deg, var(--brand) 0%, #0a302a 100%);
+  position: relative; isolation: isolate; overflow: hidden;
+  background: var(--brand);
   color: var(--brand-ink);
   padding: var(--s-8) 0 var(--s-9);
 }
+.hero-bg { position: absolute; inset: 0; z-index: -2; }
+.hero-bg img { width: 100%; height: 100%; }
+
+/* The photograph carries warmth; the gradient keeps the type legible and the
+   form dominant. Heavier on the right, where the card sits. */
+.hero::after {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(100deg, rgba(9,44,39,.93) 0%, rgba(10,48,42,.80) 38%, rgba(10,48,42,.34) 72%, rgba(10,48,42,.22) 100%),
+    radial-gradient(900px 460px at 6% 98%, rgba(194,97,31,.20), transparent 64%);
+}
+
+/* photographs inside sections */
+.shot { margin: 0; border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-md); line-height: 0; }
+.shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shot.wide { margin-top: var(--s-7); max-height: 340px; }
 .hero-grid { display: grid; gap: var(--s-7); align-items: start; }
 
 .eyebrow {
@@ -266,7 +279,8 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
   .hero { padding: var(--s-9) 0; }
   .hero-grid { grid-template-columns: 1.05fr .95fr; gap: var(--s-8); align-items: center; }
   .row-2 { grid-template-columns: 1fr 1fr; }
-  .grid-2 { grid-template-columns: 1fr 1fr; gap: var(--s-7); align-items: start; }
+  .grid-2 { grid-template-columns: 1fr 1fr; gap: var(--s-7); align-items: stretch; }
+  .grid-2 > .shot { min-height: 300px; }
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
   .grid-4, .trust { grid-template-columns: repeat(4, 1fr); }
   .steps { grid-template-columns: 1fr 1fr; gap: var(--s-6) var(--s-7); }
@@ -275,4 +289,30 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* ── sticky mobile CTA ───────────────────────────────────────────────────── */
+.mobile-cta {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  display: grid; grid-template-columns: auto 1fr; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.97);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 24px rgba(20,32,29,.10);
+}
+.mc-call, .mc-book {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 52px; border-radius: var(--r-md);
+  font-weight: 650; text-decoration: none; font-size: var(--t-base);
+}
+.mc-call { padding: 0 var(--s-5); color: var(--brand); border: 1.5px solid var(--line-2); background: var(--surface); }
+.mc-book { color: #fff; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+
+/* keep the footer clear of the bar */
+body { padding-bottom: 84px; }
+
+@media (min-width: 860px) {
+  .mobile-cta { display: none; }
+  body { padding-bottom: 0; }
 }

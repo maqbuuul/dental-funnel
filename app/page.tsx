@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import LeadForm from '@/components/LeadForm';
 
 const PRACTICE = process.env.NEXT_PUBLIC_PRACTICE_NAME ?? 'Bright Smile Dental';
@@ -44,6 +45,20 @@ export default function Page() {
       </header>
 
       <section className="hero">
+        {/* The photo is a real consultation, not equipment. On a page whose
+            whole angle is dental anxiety, a close-up of the chair works
+            against the copy. It sits behind a heavy gradient so the form,
+            not the picture, stays the focus. */}
+        <div className="hero-bg">
+          <Image
+            src="/img/hero-consult.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: 'cover', objectPosition: '60% 40%' }}
+          />
+        </div>
         <div className="wrap hero-grid">
           <div>
             <span className="eyebrow">New patient offer · {CITY}</span>
@@ -92,14 +107,15 @@ export default function Page() {
               <li><Tick /><span>A written treatment plan, with prices, before anything is scheduled</span></li>
               <li><Tick /><span>45–60 minutes — not a five-minute look and a rebooking</span></li>
             </ul>
-            <div className="card">
-              <h3>Not insured?</h3>
-              <p style={{ marginBottom: 0, color: 'var(--ink-2)' }}>
-                The $59 covers the visit in full whether you&apos;re insured or not.
-                If you do have a PPO plan, bring your card and we&apos;ll check your
-                coverage before you come in.
-              </p>
-            </div>
+            <figure className="shot">
+              <Image
+                src="/img/surgery-warm.jpg"
+                alt="Treatment room at the practice, with natural light"
+                width={1920}
+                height={1280}
+                sizes="(min-width: 860px) 50vw, 100vw"
+              />
+            </figure>
           </div>
         </div>
       </section>
@@ -152,6 +168,15 @@ export default function Page() {
               </div>
             </li>
           </ol>
+          <figure className="shot wide">
+            <Image
+              src="/img/exam.jpg"
+              alt="A dentist examining a patient during a routine check-up"
+              width={1600}
+              height={1067}
+              sizes="(min-width: 860px) 1080px, 100vw"
+            />
+          </figure>
         </div>
       </section>
 
@@ -218,6 +243,14 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* Mobile only. On a phone the form is one scroll down, and a thumb-
+          reachable bar is the single highest-yield addition to a lead-gen
+          page on this traffic. Two choices, because this demographic calls. */}
+      <div className="mobile-cta">
+        <a className="mc-call" href={`tel:${TEL}`}><Phone /> Call</a>
+        <a className="mc-book" href="#book">Book my $59 exam</a>
+      </div>
 
       <footer className="foot">
         <div className="wrap">
