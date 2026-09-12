@@ -316,3 +316,73 @@ body { padding-bottom: 84px; }
   .mobile-cta { display: none; }
   body { padding-bottom: 0; }
 }
+
+/* ── booking step ────────────────────────────────────────────────────────── */
+.thanks { max-width: var(--wrap); margin: 0 auto; padding: var(--s-7) var(--s-5) var(--s-9); }
+.thanks h1 { font-size: var(--t-xl); margin-bottom: var(--s-3); }
+.lede-dark { color: var(--ink-2); font-size: var(--t-md); max-width: 52ch; margin-bottom: var(--s-6); }
+
+.stepper { list-style: none; display: flex; gap: var(--s-4); padding: 0; margin: 0 0 var(--s-6); flex-wrap: wrap; }
+.stepper li { display: flex; align-items: center; gap: 8px; font-size: var(--t-sm); color: var(--ink-3); }
+.stepper li::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--line-2);
+}
+.stepper li.done { color: var(--ok); }
+.stepper li.done::before { background: var(--ok); }
+.stepper li.now { color: var(--brand); font-weight: 650; }
+.stepper li.now::before { background: var(--accent); box-shadow: 0 0 0 4px rgba(194,97,31,.16); }
+
+.booker { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl);
+          padding: var(--s-5); box-shadow: var(--shadow-md); }
+.booker-skeleton { background: var(--surface); border: 1px solid var(--line);
+                   border-radius: var(--r-xl); padding: var(--s-7); color: var(--ink-3); text-align: center; }
+
+/* the next working days, not a month of empty squares */
+.day-strip { display: flex; gap: var(--s-2); overflow-x: auto; padding-bottom: var(--s-3);
+             margin-bottom: var(--s-5); scrollbar-width: thin; }
+.day-chip {
+  flex: none; display: grid; gap: 2px; justify-items: center;
+  min-width: 86px; padding: 10px var(--s-3);
+  background: var(--canvas); border: 1.5px solid var(--line); border-radius: var(--r-md);
+  cursor: pointer; font: inherit; color: var(--ink-2); transition: border-color .12s, background .12s;
+}
+.day-chip:hover { border-color: var(--line-2); }
+.day-chip.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.day-chip .dow { font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.day-chip .dnum { font-family: var(--font-serif), serif; font-weight: 700; font-size: var(--t-md); }
+.day-chip .dct { font-size: var(--t-xs); opacity: .72; }
+
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: var(--s-3); }
+.slot {
+  font: inherit; font-weight: 600; font-size: var(--t-base);
+  min-height: 52px; padding: 0 var(--s-3);
+  background: var(--surface); color: var(--brand);
+  border: 1.5px solid var(--line-2); border-radius: var(--r-md);
+  cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+}
+.slot:hover:not(:disabled) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.slot:disabled { opacity: .5; cursor: default; }
+
+.booked { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl);
+          padding: var(--s-7) var(--s-5); box-shadow: var(--shadow-md); text-align: center; }
+.booked-mark { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto var(--s-4);
+               display: grid; place-items: center; color: #fff;
+               background: linear-gradient(180deg, #22806a, var(--ok)); }
+.booked h2 { font-size: var(--t-xl); margin-bottom: var(--s-2); }
+.booked-when { font-family: var(--font-serif), serif; font-size: var(--t-lg); color: var(--brand);
+               font-weight: 700; margin-bottom: var(--s-4); }
+.booked-note { color: var(--ink-2); max-width: 46ch; margin: 0 auto; }
+
+.reassure { display: grid; gap: var(--s-5); margin-top: var(--s-7); align-items: center; }
+.reassure p { color: var(--ink-2); }
+
+@media (min-width: 860px) {
+  .thanks h1 { font-size: var(--t-2xl); }
+  .reassure { grid-template-columns: 380px 1fr; gap: var(--s-7); }
+  .reassure .shot { max-height: 260px; }
+}
+
+/* Once the booking confirms, the "pick a time" heading is stale. */
+.thanks:has(.booked) .intro { display: none; }
+.thanks:has(.booked) .stepper li.now::before { background: var(--ok); box-shadow: none; }

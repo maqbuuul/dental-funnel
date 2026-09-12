@@ -59,3 +59,41 @@ SELECT date_trunc('week', created_at)::date              AS week,
 FROM leads
 GROUP BY 1
 ORDER BY 1 DESC;
+
+-- ---------------------------------------------------------------------------
+-- Appointments.
+--
+-- The thank-you page books a real slot rather than embedding somebody else's
+-- calendar. That matters beyond looks: a lead who picks their own time attends
+-- at a much higher rate than one waiting for a callback, and that difference
+-- is the whole gap between selling leads and selling appointments.
+--
+-- The partial unique index is the actual guard. Two people can open the
+-- booking page at the same second and choose the same slot; application logic
+-- that checks-then-inserts races with itself, so the database decides.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS appointments (
+    appointment_id bigserial PRIMARY KEY,
+    lead_id        bigint REFERENCES leads(lead_id),
+    starts_at      timestamptz NOT NULL,
+    ends_at        timestamptz NOT NULL,
+    status         text NOT NULL DEFAULT 'booked',   -- booked | cancelled
+    created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS appointments_one_per_slot
+    ON appointments (starts_at) WHERE status = 'booked';
+
+CREATE INDEX IF NOT EXISTS appointments_lead_idx ON appointments (lead_id);
+
+-- One row per lead that got as far as choosing a time.
+CREATE OR REPLACE VIEW v_booking_funnel AS
+SELECT date_trunc('week', l.created_at)::date          AS week,
+       count(*)                                        AS leads,
+       count(a.appointment_id)                         AS booked,
+       round(100.0 * count(a.appointment_id)
+             / nullif(count(*), 0), 1)                 AS book_rate_pct
+FROM leads l
+LEFT JOIN appointments a ON a.lead_id = l.lead_id AND a.status = 'booked'
+GROUP BY 1
+ORDER BY 1 DESC;

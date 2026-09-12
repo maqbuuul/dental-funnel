@@ -56,7 +56,9 @@ export default function LeadForm({ id }: { id?: string }) {
       window.fbq?.('track', 'Lead', { content_name: 'new-patient-exam' },
                    { eventID: eventId.current });
 
-      window.location.href = '/thank-you';
+      // Carry the event id, not the sequential lead id -- a confirmation
+      // URL nobody can walk by incrementing a number.
+      window.location.href = `/thank-you?ref=${encodeURIComponent(eventId.current)}`;
     } catch (err) {
       setState('error');
       setError(err instanceof Error ? err.message : 'Something went wrong');
